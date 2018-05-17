@@ -3,6 +3,9 @@ package com.github.db.repositories
 import com.github.db.model.{User, UsersTable}
 import slick.jdbc.H2Profile.api._
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object UserRepository {
 
   val db = Database.forConfig("db")
@@ -37,9 +40,14 @@ object UserRepository {
     * @param id user's id
     * @return Returns user if id found
     */
-  def getById(id: Long) = db.run(
-    users.filter( users => users.id === id ).take(1).result
-  )
+  def getById(id: Long) : Future[Option[User]] = {
+    val result = db.run(
+      users.filter( users => users.id === id ).take(1).result
+    )
+    result.map { s =>
+      if (s.isEmpty) None else Some(s.head)
+    }
+  }
 
   /**
     * Insert a user to the `users` table

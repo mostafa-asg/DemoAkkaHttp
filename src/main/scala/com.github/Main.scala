@@ -24,6 +24,23 @@ object Main extends JsonSupport {
     Await.ready(UserRepository.createTable , Duration.Inf)
 
     val route = pathPrefix("users") {
+      path(LongNumber) { id =>
+        get {
+          onSuccess( UserRepository.getById(id) ) {
+            case Some(user) => complete(user)
+            case None => complete(StatusCodes.NotFound)
+          }
+        } ~
+        delete {
+          onSuccess( UserRepository.deleteById(id) ) { returnValue =>
+            if (returnValue>0) {
+              complete(StatusCodes.OK)
+            } else {
+              complete(StatusCodes.NotFound)
+            }
+          }
+        }
+      } ~
       get {
         onSuccess( UserRepository.getAll ) { users =>
           complete( users )
@@ -43,7 +60,7 @@ object Main extends JsonSupport {
             case Some(id) => {
               onSuccess( UserRepository.update(id,user) ) { returnValue =>
                 if (returnValue>0)
-                  complete(StatusCodes.Created)
+                  complete(StatusCodes.OK)
                 else
                   complete(StatusCodes.NotFound)
               }

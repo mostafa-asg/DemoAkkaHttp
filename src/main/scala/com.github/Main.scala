@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import com.github.db.repositories.UserRepository
-import com.github.marshallers.json.JsonSupport
 import com.github.routes.Application
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -12,7 +11,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.io.StdIn
 
-object Main extends JsonSupport {
+object Main {
 
   def main(args: Array[String]): Unit = {
 

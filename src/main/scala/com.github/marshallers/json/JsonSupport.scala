@@ -6,6 +6,6 @@ import spray.json.DefaultJsonProtocol
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
-  implicit val userFormatter = jsonFormat3(User)
+  implicit val userFormatter = jsonFormat4(User)
 
 }

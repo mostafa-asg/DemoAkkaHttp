@@ -5,8 +5,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import com.github.db.{User, Users}
-import com.github.model.json.JsonSupport
+import com.github.db.model.User
+import com.github.db.repositories.UserRepository
+import com.github.marshallers.json.JsonSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
@@ -20,17 +21,17 @@ object Main extends JsonSupport {
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
 
-    Await.ready(Users.createTable , Duration.Inf)
+    Await.ready(UserRepository.createTable , Duration.Inf)
 
     val route = pathPrefix("users") {
       get {
-        onSuccess( Users.getAll ) { users =>
+        onSuccess( UserRepository.getAll ) { users =>
           complete( users )
         }
       } ~
       post {
         entity(as[User]) { user =>
-          onSuccess( Users.insert(user) ) { returnValue =>
+          onSuccess( UserRepository.insert(user) ) { returnValue =>
             complete(StatusCodes.Created)
           }
         }
@@ -40,7 +41,7 @@ object Main extends JsonSupport {
 
           user.id match {
             case Some(id) => {
-              onSuccess( Users.update(id,user) ) { returnValue =>
+              onSuccess( UserRepository.update(id,user) ) { returnValue =>
                 if (returnValue>0)
                   complete(StatusCodes.Created)
                 else

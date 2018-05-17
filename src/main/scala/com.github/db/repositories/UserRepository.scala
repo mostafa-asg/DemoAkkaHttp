@@ -1,30 +1,9 @@
-package com.github.db
+package com.github.db.repositories
 
-import com.github.db.Users.users
+import com.github.db.model.{User, UsersTable}
 import slick.jdbc.H2Profile.api._
-import slick.lifted.Tag
 
-/**
-  * User represents one row in `users` table
-  * @param id the row identifier
-  * @param username the user's username
-  * @param password the user's password
-  */
-case class User(id: Option[Long], username: String , password: String)
-
-/**
-  * UsersTable defines the structure and schema of the `users` table
-  * @param tag
-  */
-class UsersTable(tag: Tag) extends Table[User](tag,"users") {
-  def id = column[Long]("id",O.PrimaryKey,O.AutoInc)
-  def username = column[String]("username",O.Unique)
-  def password = column[String]("password")
-
-  def * = (id ?,username,password) <> (User.tupled , User.unapply)
-}
-
-object Users {
+object UserRepository {
 
   val db = Database.forConfig("db")
   val users = TableQuery[UsersTable]
@@ -38,6 +17,7 @@ object Users {
   )
 
   /**
+    * GetAll returns all `users` row
     * @return Returns all users
     */
   def getAll = db.run( users.result )
@@ -91,4 +71,3 @@ object Users {
   )
 
 }
-

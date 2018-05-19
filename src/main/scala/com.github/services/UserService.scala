@@ -2,7 +2,7 @@ package com.github.services
 
 import com.github.db.model.user.{Row, RowView}
 import com.github.db.repositories.UserRepository
-import com.github.http.models.{ErrorResponse, Response}
+import com.github.http.models.{ErrorResponse, Response, SuccessResponse}
 import com.github.http.models.user._
 import com.github.services.validation.Validate
 
@@ -54,6 +54,21 @@ object UserService {
     */
   def update(id:Long , user: RowView) = UserRepository.update(id,user)
 
+  def changePassword(id:Long , request:ChangePassRequest) : Future[Response] = {
+
+    val changePassword = request.copy(id=Some(id))
+
+    Validate(changePassword) >
+      passwordLength >
+      newPasswordIsNotSameAsOldOne andThen updatePassword
+  }
+
+  private def updatePassword(request: ChangePassRequest) : Future[Response] = {
+    UserRepository.updatePassword(request.id.get,request.oldPass,request.newPass).map( _ =>
+      SuccessResponse("OK")
+    )
+  }
+
   /**
     * Register new user
     * @param user
@@ -61,9 +76,9 @@ object UserService {
     */
   def registerNewUser(user: RegisterUserRequest): Future[Response] = {
     Validate(user) >
-      usernameIsNotEmpty >
-      usernameHasNotTaken >
-      passwordIsNotTooShort andThen saveUserToDb
+      usernameEmptines >
+      usernameUniqueness >
+      passwordLength andThen saveUserToDb
   }
 
   private def saveUserToDb(user: RegisterUserRequest): Future[RegisterUserResponse] = {
@@ -72,15 +87,31 @@ object UserService {
     )
   }
 
-  private def passwordIsNotTooShort(user: RegisterUserRequest): Option[ErrorResponse] = {
-    if (user.password.length < 6) {
+  private def passwordLength(user: RegisterUserRequest): Option[ErrorResponse] = {
+    passwordShouldNotBeShort(user.password)
+  }
+
+  private def passwordLength(request: ChangePassRequest): Option[ErrorResponse] = {
+    passwordShouldNotBeShort(request.newPass)
+  }
+
+  private def newPasswordIsNotSameAsOldOne(request: ChangePassRequest): Option[ErrorResponse] = {
+    if (request.newPass == request.oldPass) {
+      Some(ErrorResponse("New password must not be the same as old password"))
+    } else {
+      None
+    }
+  }
+
+  private def passwordShouldNotBeShort(pass: String): Option[ErrorResponse] = {
+    if (pass.length < 6) {
       Some(ErrorResponse("Password is too short"))
     } else {
       None
     }
   }
 
-  private def usernameIsNotEmpty(user: RegisterUserRequest): Option[ErrorResponse] = {
+  private def usernameEmptines(user: RegisterUserRequest): Option[ErrorResponse] = {
     if (user.username.isEmpty) {
       Some(ErrorResponse("Please provide a username"))
     } else {
@@ -88,7 +119,7 @@ object UserService {
     }
   }
 
-  private def usernameHasNotTaken(user: RegisterUserRequest): Option[ErrorResponse] = {
+  private def usernameUniqueness(user: RegisterUserRequest): Option[ErrorResponse] = {
     val result = Await.result(UserRepository.getByUsername(user.username),Duration.Inf)
     result match {
       case Some(_) => Some(ErrorResponse("Username has already taken"))

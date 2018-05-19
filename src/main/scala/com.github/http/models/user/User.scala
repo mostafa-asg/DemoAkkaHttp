@@ -6,3 +6,5 @@ case class RegisterUserRequest(username: String,
                                password: String,
                                balance: Double) extends Response
 case class RegisterUserResponse(userId: Long, success:Boolean=true) extends Response
+
+case class ChangePassRequest(id: Option[Long], oldPass:String, newPass:String) extends Response

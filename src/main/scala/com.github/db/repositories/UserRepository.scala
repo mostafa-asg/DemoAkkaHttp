@@ -93,7 +93,7 @@ object UserRepository {
     * @return
     */
   def updatePassword(id: Long, oldPass: String, newPass: String) = {
-    val user = users.filter(users => users.id === id && users.password === oldPass).take(1).map( x =>
+    val user = users.filter(users => users.id === id && users.password === oldPass).map( x =>
       x.password
     )
     db.run(user.update(newPass))

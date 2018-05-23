@@ -3,9 +3,8 @@ package com.github.routes
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import com.github.db.model.user.RowView
-import com.github.http.models.{ErrorResponse, Response, SuccessResponse}
-import com.github.http.models.user.{ChangePassRequest, RegisterUserRequest, RegisterUserResponse}
+import com.github.http.models._
+import com.github.http.models.user._
 import com.github.serde.JsonSupport
 import com.github.services.UserService
 
@@ -25,12 +24,9 @@ object UserRoutes extends JsonSupport {
   }
 
   def updateById(id: Long) = put {
-    entity(as[RowView]) { user =>
-      onSuccess( UserService.update(id,user) ) { returnValue =>
-        if (returnValue>0)
-          complete(StatusCodes.OK)
-        else
-          complete(StatusCodes.NotFound)
+    entity(as[UpdateRequest]) { user =>
+      onSuccess( UserService.update(id,user) ) { response =>
+          complete(response)
       }
     }
   }
@@ -38,7 +34,7 @@ object UserRoutes extends JsonSupport {
   def changePass(id: Long) = put {
     entity(as[ChangePassRequest]) { req =>
       onSuccess( UserService.changePassword(id,req) ) { response =>
-        complete(toProperResponse(response))
+        complete(response)
       }
     }
   }
@@ -54,9 +50,9 @@ object UserRoutes extends JsonSupport {
   }
 
   val insert = post {
-    entity(as[RegisterUserRequest]) { user =>
+    entity(as[RegisterRequest]) { user =>
       onSuccess( UserService.registerNewUser(user) ) { response =>
-        complete(toProperResponse(response))
+        complete(response)
       }
     }
   }
@@ -71,8 +67,8 @@ object UserRoutes extends JsonSupport {
       getAll ~ insert
   }
 
-  private def toProperResponse(response: Response):ToResponseMarshallable = response match {
-    case RegisterUserResponse(_,_) => ToResponseMarshallable(response.asInstanceOf[RegisterUserResponse])
+  implicit def toProperResponse(response: Response):ToResponseMarshallable = response match {
+    case RegisterResponse(_,_) => ToResponseMarshallable(response.asInstanceOf[RegisterResponse])
     case ErrorResponse(_,_) =>  ToResponseMarshallable(response.asInstanceOf[ErrorResponse])
     case SuccessResponse(_,_) => ToResponseMarshallable(response.asInstanceOf[SuccessResponse])
     case _ => throw new RuntimeException("Invalid reponse type")

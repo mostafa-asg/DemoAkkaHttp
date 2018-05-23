@@ -1,13 +1,13 @@
 package com.github.services
 
-import com.github.db.model.user.{Row, RowView}
+import com.github.db.model.user.{User, UserView}
 import com.github.db.repositories.UserRepository
 import com.github.http.models.{ErrorResponse, Response, SuccessResponse}
 import com.github.http.models.user._
 import com.github.services.validation.Validate
+import com.github.services.validation.UserValidation._
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object UserService {
@@ -23,7 +23,10 @@ object UserService {
     * @param pageSize page size
     * @return
     */
-  def getAll(pageNumber: Int , pageSize: Int): Future[Seq[RowView]] = UserRepository.page(pageNumber,pageSize)
+  def getAll(pageNumber: Int , pageSize: Int): Future[Seq[UserView]] = {
+    val page = if (pageNumber < 1) 1 else 0
+    UserRepository.page(page-1,pageSize)
+  }
 
   /**
     * Get user by his id
@@ -49,24 +52,33 @@ object UserService {
   /**
     * Update user
     * @param id
-    * @param user
+    * @param request
     * @return
     */
-  def update(id:Long , user: RowView) = UserRepository.update(id,user)
-
-  def changePassword(id:Long , request:ChangePassRequest) : Future[Response] = {
-
-    val changePassword = request.copy(id=Some(id))
-
-    Validate(changePassword) >
-      passwordLength >
-      newPasswordIsNotSameAsOldOne andThen updatePassword
+  def update(id:Long , request: UpdateRequest) = {
+    Validate(request) >
+      usernameEmptiness >
+      usernameUniqueness andThen
+      { req =>
+        UserRepository.update(id,request.username,request.balance).map { result =>
+          if (result>0) SuccessResponse("Updated") else ErrorResponse("Error has occured")
+        }
+      }
   }
 
-  private def updatePassword(request: ChangePassRequest) : Future[Response] = {
-    UserRepository.updatePassword(request.id.get,request.oldPass,request.newPass).map( _ =>
-      SuccessResponse("OK")
-    )
+  /**
+    * Change user password
+    * @param id
+    * @param request
+    * @return
+    */
+  def changePassword(id:Long , request:ChangePassRequest) : Future[Response] = {
+    val newPassword = request.copy(id=Some(id))
+
+    Validate(newPassword) >
+      passwordLength >
+      newPasswordIsNotSameAsOldOne andThen
+      updatePassword
   }
 
   /**
@@ -74,58 +86,27 @@ object UserService {
     * @param user
     * @return
     */
-  def registerNewUser(user: RegisterUserRequest): Future[Response] = {
+  def registerNewUser(user: RegisterRequest): Future[Response] = {
     Validate(user) >
-      usernameEmptines >
-      usernameUniqueness >
-      passwordLength andThen saveUserToDb
+      usernameEmptiness >
+      passwordLength >
+      usernameUniqueness andThen
+      saveUserToDb
   }
 
-  private def saveUserToDb(user: RegisterUserRequest): Future[RegisterUserResponse] = {
-    UserRepository.insert(Row(0,user.username,user.password,user.balance)).map(userId =>
-      RegisterUserResponse(userId)
+  private def updatePassword(request: ChangePassRequest) : Future[Response] = {
+    UserRepository.updatePassword(request.id.get,request.oldPass,request.newPass).map( _ =>
+      SuccessResponse("Password has been changed")
     )
   }
 
-  private def passwordLength(user: RegisterUserRequest): Option[ErrorResponse] = {
-    passwordShouldNotBeShort(user.password)
+  private def saveUserToDb(user: RegisterRequest): Future[RegisterResponse] = {
+    UserRepository.insert(User(0,user.username,user.password,user.balance)).map(userId =>
+      RegisterResponse(userId)
+    )
   }
 
-  private def passwordLength(request: ChangePassRequest): Option[ErrorResponse] = {
-    passwordShouldNotBeShort(request.newPass)
-  }
 
-  private def newPasswordIsNotSameAsOldOne(request: ChangePassRequest): Option[ErrorResponse] = {
-    if (request.newPass == request.oldPass) {
-      Some(ErrorResponse("New password must not be the same as old password"))
-    } else {
-      None
-    }
-  }
-
-  private def passwordShouldNotBeShort(pass: String): Option[ErrorResponse] = {
-    if (pass.length < 6) {
-      Some(ErrorResponse("Password is too short"))
-    } else {
-      None
-    }
-  }
-
-  private def usernameEmptines(user: RegisterUserRequest): Option[ErrorResponse] = {
-    if (user.username.isEmpty) {
-      Some(ErrorResponse("Please provide a username"))
-    } else {
-      None
-    }
-  }
-
-  private def usernameUniqueness(user: RegisterUserRequest): Option[ErrorResponse] = {
-    val result = Await.result(UserRepository.getByUsername(user.username),Duration.Inf)
-    result match {
-      case Some(_) => Some(ErrorResponse("Username has already taken"))
-      case None => None
-    }
-  }
 
 }
 

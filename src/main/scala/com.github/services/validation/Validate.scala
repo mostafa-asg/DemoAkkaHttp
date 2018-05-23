@@ -1,15 +1,15 @@
 package com.github.services.validation
 
 import com.github.http.models.Response
-import com.github.services.validation.Validate.ValFunc
+import com.github.services.validation.Validate.ValidateFunc
 
 import scala.concurrent.Future
 
-class Validate[IN,R <: Response](input: IN, valFunctions: List[ValFunc[IN,R]]=List.empty) {
+class Validate[IN,OUT <: Response](input: IN, valFunctions: List[ValidateFunc[IN,OUT]]=List.empty) {
 
-  def > (f: ValFunc[IN,R]) = new Validate(input,valFunctions :+ f)
+  def > (f: ValidateFunc[IN,OUT]) = new Validate(input,valFunctions :+ f)
 
-  def andThen(f: IN => Future[R]): Future[R] = {
+  def andThen(f: IN => Future[OUT]): Future[OUT] = {
     val it = valFunctions.iterator
     while (it.hasNext){
       val nextFunc = it.next
@@ -26,7 +26,7 @@ class Validate[IN,R <: Response](input: IN, valFunctions: List[ValFunc[IN,R]]=Li
 
 object Validate {
 
-  type ValFunc[IN,R] = IN => Option[R]
+  type ValidateFunc[IN,OUT] = IN => Option[OUT]
   def apply[IN,R](input: IN) = new Validate[IN,Response](input)
 
 }

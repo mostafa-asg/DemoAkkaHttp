@@ -2,9 +2,10 @@ package com.github.http.models.user
 
 import com.github.http.models.Response
 
-case class RegisterUserRequest(username: String,
-                               password: String,
-                               balance: Double) extends Response
-case class RegisterUserResponse(userId: Long, success:Boolean=true) extends Response
+case class RegisterRequest(username: String,
+                           password: String,
+                           balance: Double)
+case class RegisterResponse(userId: Long, success:Boolean=true) extends Response
 
-case class ChangePassRequest(id: Option[Long], oldPass:String, newPass:String) extends Response
+case class UpdateRequest(username:String, balance: Double)
+case class ChangePassRequest(id: Option[Long], oldPass:String, newPass:String)

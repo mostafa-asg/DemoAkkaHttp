@@ -4,6 +4,17 @@
 ```
 sbt run
 ```
+It starts a server listening on 0.0.0.0:8585
+
+### Routes
+| Method   | Route                                        |
+| -------- |--------------------------------------------- |
+| GET      | http://localhost:8585/api/v1/users           |
+| GET      | http://localhost:8585/api/v1/users/{user id} |
+| POST     | http://localhost:8585/api/v1/users/          |
+| PUT      | http://localhost:8585/api/v1/users/{user id} |
+| PUT      | http://localhost:8585/api/v1/users/{user id}/changePass |
+| DELETE   | http://localhost:8585/api/v1/users/{user id} |
 
 ### Create new user
 Request:
@@ -17,7 +28,7 @@ Response:
 Create another user with the same username as previous request. You should get response like this:
 ```
 {"message":"Username has already taken","success":false}
-```
+``` 
 Try create another user with short password less than 6 character. You should get response like this:
 ```
 {"message":"Password is too short","success":false}
@@ -57,4 +68,13 @@ curl -d '{"oldPass":"123456", "newPass":"987654"}' -H "Content-Type: application
 Response:
 ```
 {"message":"Password has been changed","success":true}
+```
+### Delete a user by id
+Request:
+```
+curl -H "Content-Type: application/json" -X DELETE http://localhost:8585/api/v1/users/1
+```
+Response:
+```
+ok
 ```
